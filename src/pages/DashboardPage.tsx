@@ -407,7 +407,7 @@ export default function DashboardPage() {
                         fontSize: 12,
                         fontFamily: "'Inter', sans-serif",
                       }}
-                      formatter={(value: number) => formatBs(value)}
+                      formatter={(value) => value != null ? formatBs(value as number) : ''}
                     />
                     <Area
                       type="monotone"
@@ -467,7 +467,7 @@ export default function DashboardPage() {
                         <Cell key={entry.name} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => formatBs(value)} />
+                    <Tooltip formatter={(value) => typeof value === 'number' ? formatBs(value) : value} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>

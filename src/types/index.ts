@@ -108,3 +108,28 @@ export interface BudgetProgress {
 export interface ValidationErrorData {
   fields: Record<string, string>;
 }
+
+export interface DashboardBalance {
+  income: number;
+  expense: number;
+  total: number;
+}
+
+export interface DashboardCategoryBreakdown {
+  categoryId: string;
+  categoryName: string;
+  type: TransactionType; // 'INCOME' | 'EXPENSE'
+  total: number;
+}
+
+export interface DashboardBudgetAlert {
+  budgetId: string;
+  categoryName: string;
+  percentageUsed: number;
+}
+
+export interface DashboardSummary {
+  balance: DashboardBalance;
+  byCategory: DashboardCategoryBreakdown[];
+  budgetAlerts: DashboardBudgetAlert[];
+}
