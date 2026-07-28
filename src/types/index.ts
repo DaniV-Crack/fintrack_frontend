@@ -24,8 +24,14 @@ export interface RegisterData {
   password: string;
 }
 
-// ── Nuevo ───────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Agregar a src/types/index.ts (junto a lo que ya tenés: ApiResponse, User,
+// AuthPayload, LoginCredentials, RegisterData). No reemplaza nada existente.
+// ---------------------------------------------------------------------------
+
 export type TransactionType = 'INCOME' | 'EXPENSE';
+
+// ── Transacciones ────────────────────────────────────────────────────────
 
 export interface Category {
   id: string;
@@ -35,21 +41,14 @@ export interface Category {
   createdAt: string;
 }
 
-export interface CreateCategoryDto {
-  name: string;
-  type: TransactionType;
-}
-
-export type UpdateCategoryDto = Partial<CreateCategoryDto>;
-
 export interface Transaction {
   id: string;
   userId: string;
   categoryId: string;
-  amount: number;               // ver nota en sección 3 sobre Decimal
+  amount: number; // ver nota: normalizar Number(amount) en el service si Prisma lo serializa como string
   type: TransactionType;
   description?: string | null;
-  transactionDate: string;      // ISO 8601
+  transactionDate: string; // ISO 8601
   createdAt: string;
   category?: Pick<Category, 'id' | 'name' | 'type'>;
 }
@@ -78,12 +77,50 @@ export interface Paginated<T> {
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
+// ── Dashboard — forma real confirmada por /api/dashboard ──────────────────
+
+export interface DashboardBalance {
+  income: number;
+  expense: number;
+  total: number;
+}
+
+export interface DashboardCategoryTotal {
+  categoryId: string;
+  categoryName: string;
+  type: TransactionType;
+  total: number;
+}
+
+export interface DashboardBudgetAlert {
+  budgetId: string;
+  categoryName: string;
+  percentageUsed: number;
+}
+
+export interface DashboardSummary {
+  balance: DashboardBalance;
+  byCategory: DashboardCategoryTotal[];
+  budgetAlerts: DashboardBudgetAlert[];
+}
+
+// ── Categorías ────────────────────────────────────────────────────────────
+
+export interface CreateCategoryDto {
+  name: string;
+  type: TransactionType;
+}
+
+export type UpdateCategoryDto = Partial<CreateCategoryDto>;
+
+// ── Presupuestos ──────────────────────────────────────────────────────────
+
 export interface Budget {
   id: string;
   userId: string;
   categoryId: string;
   amount: number;
-  month: number; // 1-12
+  month: number;
   year: number;
   createdAt: string;
   category?: Pick<Category, 'id' | 'name' | 'type'>;
@@ -102,34 +139,29 @@ export interface BudgetProgress {
   budget: Budget;
   spent: number;
   remaining: number;
-  percentage: number; // 0-100 (o más si está excedido)
+  percentage: number;
 }
+
+// ── Errores de validación ─────────────────────────────────────────────────
 
 export interface ValidationErrorData {
   fields: Record<string, string>;
 }
 
-export interface DashboardBalance {
-  income: number;
-  expense: number;
-  total: number;
-}
+// ── Reports (asumido de GET /api/transactions/summary) ────────────────────
 
-export interface DashboardCategoryBreakdown {
+export interface TransactionSummaryItem {
   categoryId: string;
   categoryName: string;
-  type: TransactionType; // 'INCOME' | 'EXPENSE'
+  type: TransactionType;
   total: number;
+  count: number;
 }
 
-export interface DashboardBudgetAlert {
-  budgetId: string;
-  categoryName: string;
-  percentageUsed: number;
-}
-
-export interface DashboardSummary {
-  balance: DashboardBalance;
-  byCategory: DashboardCategoryBreakdown[];
-  budgetAlerts: DashboardBudgetAlert[];
+export interface TransactionSummary {
+  dateFrom: string;
+  dateTo: string;
+  income: number;
+  expense: number;
+  byCategory: TransactionSummaryItem[];
 }
