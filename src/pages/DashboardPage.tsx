@@ -1,27 +1,17 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  ArrowLeftRight,
-  Tags,
-  PiggyBank,
-  BarChart3,
-  Settings,
-  User,
-  LogOut,
-  Bell,
-  Menu,
-  X,
   Wallet,
   TrendingUp,
   TrendingDown,
   PiggyBank as SavingsIcon,
   Plus,
-  ShoppingCart,
-  Home,
-  Utensils,
-  Briefcase,
+  ArrowDownLeft,
+  ArrowUpRight,
   ChevronRight,
+  AlertCircle,
+  RotateCw,
+  PiggyBank,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -35,291 +25,148 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { useAuth } from '../context/AuthContext';
-
-const FONT_IMPORT =
-  "@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');";
-
-const brand = {
-  bg: '#FAF9F6',
-  dark: '#12181F',
-  darkHover: '#2A3644',
-  text: '#12181F',
-  textSecondary: '#6B7280',
-  border: '#E4E2DC',
-  accent: '#F5A623',
-  success: '#2EBD73',
-  danger: '#F2734F',
-  errorBg: '#FBEAE0',
-};
-
-// ---------------------------------------------------------------------------
-// Mock data — reemplazar por llamadas reales cuando existan los endpoints.
-// ---------------------------------------------------------------------------
-const monthlyData = [
-  { month: 'Feb', ingresos: 7200, gastos: 4100 },
-  { month: 'Mar', ingresos: 7600, gastos: 4600 },
-  { month: 'Abr', ingresos: 7400, gastos: 3900 },
-  { month: 'May', ingresos: 8100, gastos: 4300 },
-  { month: 'Jun', ingresos: 7900, gastos: 5100 },
-  { month: 'Jul', ingresos: 8500, gastos: 3250 },
-];
-
-const expenseDistribution = [
-  { name: 'Alimentación', value: 850, color: brand.accent },
-  { name: 'Vivienda', value: 1500, color: brand.dark },
-  { name: 'Transporte', value: 420, color: brand.success },
-  { name: 'Entretenimiento', value: 350, color: brand.danger },
-  { name: 'Salud', value: 210, color: '#8B9AAE' },
-  { name: 'Otros', value: 180, color: '#D8D3C7' },
-];
-
-const recentTransactions = [
-  { id: 1, label: 'Salario', category: 'Ingreso', date: '26 Jul 2026', amount: 8500, icon: Briefcase },
-  { id: 2, label: 'Supermercado', category: 'Alimentación', date: '25 Jul 2026', amount: -250, icon: ShoppingCart },
-  { id: 3, label: 'Alquiler', category: 'Vivienda', date: '01 Jul 2026', amount: -1500, icon: Home },
-  { id: 4, label: 'Restaurante', category: 'Alimentación', date: '20 Jul 2026', amount: -85, icon: Utensils },
-];
-
-const budgets = [
-  { label: 'Alimentación', spent: 850, total: 1200 },
-  { label: 'Vivienda', spent: 1500, total: 1500 },
-  { label: 'Entretenimiento', spent: 350, total: 500 },
-];
-
-const summaryCards = [
-  { label: 'Balance total', value: 12450, change: '+4.2%', positive: true, icon: Wallet },
-  { label: 'Ingresos', value: 8500, change: '+6.1%', positive: true, icon: TrendingUp },
-  { label: 'Gastos', value: 3250, change: '-11.4%', positive: true, icon: TrendingDown },
-  { label: 'Ahorro', value: 5250, change: '+18.9%', positive: true, icon: SavingsIcon },
-];
-
-const menuItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-  { label: 'Transacciones', icon: ArrowLeftRight, path: '/transactions' },
-  { label: 'Categorías', icon: Tags, path: '/categories' },
-  { label: 'Presupuestos', icon: PiggyBank, path: '/budgets' },
-  { label: 'Reportes', icon: BarChart3, path: '/reports' },
-];
-
-function formatBs(value: number) {
-  const abs = Math.abs(value).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `${value < 0 ? '-' : ''}Bs ${abs}`;
-}
-
-function budgetStatus(spent: number, total: number) {
-  const pct = Math.min(100, Math.round((spent / total) * 100));
-  if (pct >= 100) return { pct, color: brand.danger, label: 'Excedido' };
-  if (pct >= 85) return { pct, color: brand.accent, label: 'Cerca del límite' };
-  return { pct, color: brand.success, label: 'Saludable' };
-}
-
-// ---------------------------------------------------------------------------
-// Sidebar
-// ---------------------------------------------------------------------------
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { logout } = useAuth();
-
-  const isActive = (path: string) => location.pathname === path;
-
-  const go = (path: string) => {
-    navigate(path);
-    onNavigate?.();
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login', { replace: true });
-  };
-
-  return (
-    <div className="flex h-full flex-col justify-between">
-      <div>
-        <div className="px-6 py-7">
-          <span
-            className="text-xl tracking-tight"
-            style={{ color: brand.bg, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
-          >
-            FinTrack
-          </span>
-        </div>
-        <nav className="px-3 space-y-1">
-          {menuItems.map((item) => {
-            const active = isActive(item.path);
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.path}
-                onClick={() => go(item.path)}
-                className="w-full flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-colors duration-150"
-                style={{
-                  background: active ? 'rgba(245,166,35,0.14)' : 'transparent',
-                  color: active ? brand.accent : 'rgba(250,249,246,0.65)',
-                  fontWeight: active ? 600 : 400,
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) e.currentTarget.style.background = 'rgba(250,249,246,0.05)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                <Icon size={17} strokeWidth={1.75} />
-                {item.label}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      <div className="px-3 pb-6 space-y-1 border-t" style={{ borderColor: 'rgba(250,249,246,0.08)' }}>
-        <div className="pt-4" />
-        <button
-          onClick={() => go('/settings')}
-          className="w-full flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-colors duration-150"
-          style={{ color: 'rgba(250,249,246,0.65)' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(250,249,246,0.05)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-        >
-          <Settings size={17} strokeWidth={1.75} />
-          Configuración
-        </button>
-        <button
-          onClick={() => go('/profile')}
-          className="w-full flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-colors duration-150"
-          style={{ color: 'rgba(250,249,246,0.65)' }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(250,249,246,0.05)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-        >
-          <User size={17} strokeWidth={1.75} />
-          Perfil
-        </button>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 rounded-lg px-3.5 py-2.5 text-sm transition-colors duration-150"
-          style={{ color: brand.danger }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(242,115,79,0.1)')}
-          onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-        >
-          <LogOut size={17} strokeWidth={1.75} />
-          Cerrar sesión
-        </button>
-      </div>
-    </div>
-  );
-}
+import { dashboardService } from '../api/dashboard.service';
+import { transactionsService } from '../api/transactions.service';
+import type { DashboardSummary, Transaction } from '../types';
+import { brand, categoryPalette } from '../lib/theme';
+import { n, formatBs, formatDate, computeChange, getLastMonths, budgetStatus } from '../lib/format';
 
 export default function DashboardPage() {
-  const { user } = useAuth();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const navigate = useNavigate();
 
-  const firstName = user?.name?.split(' ')[0] ?? 'Daniel';
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [monthlySummaries, setMonthlySummaries] = useState<DashboardSummary[]>([]);
+  const [trendLabels, setTrendLabels] = useState<string[]>([]);
+  const [recentTx, setRecentTx] = useState<Transaction[]>([]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const months = getLastMonths(6);
+      const [summaries, txPage] = await Promise.all([
+        Promise.all(months.map((m) => dashboardService.getSummary(m.month, m.year))),
+        transactionsService.getAll({ page: 1, limit: 5 }),
+      ]);
+
+      setMonthlySummaries(summaries);
+      setTrendLabels(months.map((m) => m.label));
+
+      const sorted = [...txPage.items].sort(
+        (a, b) => new Date(b.transactionDate).getTime() - new Date(a.transactionDate).getTime(),
+      );
+      setRecentTx(sorted.slice(0, 5));
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string };
+      setError(e.response?.data?.message ?? e.message ?? 'No se pudo cargar el dashboard');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const current = monthlySummaries[monthlySummaries.length - 1] ?? null;
+  const previous = monthlySummaries[monthlySummaries.length - 2] ?? null;
+
+  const income = n(current?.balance.income);
+  const expense = n(current?.balance.expense);
+  const total = n(current?.balance.total);
+  const prevIncome = n(previous?.balance.income);
+  const prevExpense = n(previous?.balance.expense);
+  const prevTotal = n(previous?.balance.total);
+
+  const savingsRate = income > 0 ? (total / income) * 100 : 0;
+  const prevSavingsRate = prevIncome > 0 ? (prevTotal / prevIncome) * 100 : 0;
+
+  const summaryCards = [
+    {
+      label: 'Balance total',
+      value: formatBs(total),
+      change: computeChange(total, prevTotal),
+      goodWhenUp: true,
+      icon: Wallet,
+    },
+    {
+      label: 'Ingresos',
+      value: formatBs(income),
+      change: computeChange(income, prevIncome),
+      goodWhenUp: true,
+      icon: TrendingUp,
+    },
+    {
+      label: 'Gastos',
+      value: formatBs(expense),
+      change: computeChange(expense, prevExpense),
+      goodWhenUp: false,
+      icon: TrendingDown,
+    },
+    {
+      label: 'Tasa de ahorro',
+      value: `${savingsRate.toFixed(0)}%`,
+      change: computeChange(savingsRate, prevSavingsRate),
+      goodWhenUp: true,
+      icon: SavingsIcon,
+    },
+  ];
+
+  const trendData = monthlySummaries.map((s, i) => ({
+    month: trendLabels[i],
+    ingresos: n(s.balance.income),
+    gastos: n(s.balance.expense),
+  }));
+
+  const expenseDistribution = (current?.byCategory ?? [])
+    .filter((c) => c.type === 'EXPENSE')
+    .map((c, i) => ({
+      name: c.categoryName,
+      value: n(c.total),
+      color: categoryPalette[i % categoryPalette.length],
+    }));
+
+  const budgetAlerts = current?.budgetAlerts ?? [];
 
   return (
-    <div className="min-h-screen flex" style={{ background: brand.bg, fontFamily: "'Inter', sans-serif" }}>
-      <style>{FONT_IMPORT}</style>
-
-      {/* Sidebar — desktop */}
-      <aside className="hidden lg:block w-64 shrink-0" style={{ background: brand.dark }}>
-        <div className="sticky top-0 h-screen">
-          <SidebarContent />
-        </div>
-      </aside>
-
-      {/* Drawer — mobile */}
-      {drawerOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/40 transition-opacity duration-200"
-            onClick={() => setDrawerOpen(false)}
-          />
-          <div
-            className="absolute left-0 top-0 h-full w-64 transition-transform duration-200 ease-out"
-            style={{ background: brand.dark }}
-          >
-            <button
-              onClick={() => setDrawerOpen(false)}
-              className="absolute right-4 top-6 z-10"
-              style={{ color: 'rgba(250,249,246,0.6)' }}
-              aria-label="Cerrar menú"
-            >
-              <X size={20} />
-            </button>
-            <SidebarContent onNavigate={() => setDrawerOpen(false)} />
-          </div>
+    <>
+      {error && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-4 rounded-lg px-4 py-3 text-sm"
+          style={{ background: brand.errorBg, color: '#8a4a24' }}
+        >
+          <span className="flex items-center gap-2">
+            <AlertCircle size={16} />
+            {error}
+          </span>
+          <button onClick={load} className="flex items-center gap-1.5 font-medium shrink-0">
+            <RotateCw size={13} />
+            Reintentar
+          </button>
         </div>
       )}
 
-      {/* Contenido principal */}
-      <div className="flex-1 min-w-0">
-        {/* Header */}
-        <header
-          className="flex items-center justify-between border-b px-5 py-4 sm:px-8"
-          style={{ borderColor: brand.border, background: brand.bg }}
-        >
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setDrawerOpen(true)}
-              className="lg:hidden -ml-1 p-1.5"
-              style={{ color: brand.text }}
-              aria-label="Abrir menú"
-            >
-              <Menu size={22} strokeWidth={1.75} />
-            </button>
-            <div>
-              <h1
-                className="text-lg sm:text-xl"
-                style={{ color: brand.text, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500 }}
-              >
-                {greeting}, {firstName}
-              </h1>
-              <p className="text-xs sm:text-sm hidden sm:block" style={{ color: brand.textSecondary }}>
-                Este es el resumen de tus finanzas.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <button
-              className="relative p-2 rounded-full transition-colors duration-150"
-              style={{ color: brand.textSecondary }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(18,24,31,0.04)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-              aria-label="Notificaciones"
-            >
-              <Bell size={19} strokeWidth={1.75} />
-              <span
-                className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full"
-                style={{ background: brand.accent }}
-              />
-            </button>
-            <div className="flex items-center gap-2.5">
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold"
-                style={{ background: brand.dark, color: brand.bg }}
-              >
-                {firstName.charAt(0).toUpperCase()}
-              </div>
-              <span className="hidden sm:block text-sm font-medium" style={{ color: brand.text }}>
-                {user?.name ?? 'Daniel'}
-              </span>
-            </div>
-          </div>
-        </header>
-
-        <main className="px-5 py-6 sm:px-8 sm:py-8 space-y-8">
-          {/* Cards financieras */}
+      {loading ? (
+        <div className="flex items-center justify-center py-24">
+          <span
+            className="h-6 w-6 rounded-full border-2 animate-spin"
+            style={{ borderColor: brand.border, borderTopColor: brand.accent }}
+          />
+        </div>
+      ) : (
+        <>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             {summaryCards.map((card) => {
               const Icon = card.icon;
+              const isUp = card.change >= 0;
+              const isGood = card.goodWhenUp ? isUp : !isUp;
+              const changeColor = isGood ? brand.success : brand.danger;
               return (
                 <div
                   key={card.label}
-                  className="rounded-xl border p-5 transition-shadow duration-150"
+                  className="rounded-xl border p-5"
                   style={{ borderColor: brand.border, background: '#fff' }}
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -337,19 +184,17 @@ export default function DashboardPage() {
                     className="text-2xl tabular-nums mb-2"
                     style={{ fontFamily: "'JetBrains Mono', monospace", color: brand.text, fontWeight: 500 }}
                   >
-                    {formatBs(card.value)}
+                    {card.value}
                   </p>
                   <div className="flex items-center gap-1">
-                    {card.positive ? (
-                      <TrendingUp size={12} style={{ color: brand.success }} strokeWidth={2} />
+                    {isUp ? (
+                      <TrendingUp size={12} style={{ color: changeColor }} strokeWidth={2} />
                     ) : (
-                      <TrendingDown size={12} style={{ color: brand.danger }} strokeWidth={2} />
+                      <TrendingDown size={12} style={{ color: changeColor }} strokeWidth={2} />
                     )}
-                    <span
-                      className="text-xs font-medium"
-                      style={{ color: card.positive ? brand.success : brand.danger }}
-                    >
-                      {card.change}
+                    <span className="text-xs font-medium" style={{ color: changeColor }}>
+                      {card.change >= 0 ? '+' : ''}
+                      {card.change.toFixed(1)}%
                     </span>
                     <span className="text-xs" style={{ color: brand.textSecondary }}>
                       vs. mes anterior
@@ -360,7 +205,6 @@ export default function DashboardPage() {
             })}
           </div>
 
-          {/* Gráfico principal + Donut */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <div
               className="xl:col-span-2 rounded-xl border p-5 sm:p-6"
@@ -376,7 +220,7 @@ export default function DashboardPage() {
               </div>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={monthlyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <AreaChart data={trendData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="ingresosGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor={brand.accent} stopOpacity={0.25} />
@@ -407,7 +251,7 @@ export default function DashboardPage() {
                         fontSize: 12,
                         fontFamily: "'Inter', sans-serif",
                       }}
-                      formatter={(value) => value != null ? formatBs(value as number) : ''}
+                      formatter={(value) => formatBs(Number(value ?? 0))}
                     />
                     <Area
                       type="monotone"
@@ -431,15 +275,11 @@ export default function DashboardPage() {
               <div className="flex items-center gap-5 mt-4">
                 <div className="flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full" style={{ background: brand.accent }} />
-                  <span className="text-xs" style={{ color: brand.textSecondary }}>
-                    Ingresos
-                  </span>
+                  <span className="text-xs" style={{ color: brand.textSecondary }}>Ingresos</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full" style={{ background: brand.dark }} />
-                  <span className="text-xs" style={{ color: brand.textSecondary }}>
-                    Gastos
-                  </span>
+                  <span className="text-xs" style={{ color: brand.textSecondary }}>Gastos</span>
                 </div>
               </div>
             </div>
@@ -451,48 +291,55 @@ export default function DashboardPage() {
               <h2 className="text-base font-medium mb-6" style={{ color: brand.text }}>
                 Distribución de gastos
               </h2>
-              <div className="h-44">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={expenseDistribution}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={50}
-                      outerRadius={72}
-                      paddingAngle={2}
-                      stroke="none"
-                    >
-                      {expenseDistribution.map((entry) => (
-                        <Cell key={entry.name} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => typeof value === 'number' ? formatBs(value) : value} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-4 space-y-2">
-                {expenseDistribution.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
-                      <span className="text-xs" style={{ color: brand.text }}>
-                        {item.name}
-                      </span>
-                    </div>
-                    <span
-                      className="text-xs tabular-nums"
-                      style={{ fontFamily: "'JetBrains Mono', monospace", color: brand.textSecondary }}
-                    >
-                      {formatBs(item.value)}
-                    </span>
+              {expenseDistribution.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <p className="text-sm" style={{ color: brand.textSecondary }}>
+                    Todavía no registraste gastos categorizados este mes.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="h-44">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={expenseDistribution}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={50}
+                          outerRadius={72}
+                          paddingAngle={2}
+                          stroke="none"
+                        >
+                          {expenseDistribution.map((entry) => (
+                            <Cell key={entry.name} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => formatBs(Number(Array.isArray(value) ? value[0] ?? 0 : value ?? 0))} />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                ))}
-              </div>
+                  <div className="mt-4 space-y-2">
+                    {expenseDistribution.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full" style={{ background: item.color }} />
+                          <span className="text-xs" style={{ color: brand.text }}>{item.name}</span>
+                        </div>
+                        <span
+                          className="text-xs tabular-nums"
+                          style={{ fontFamily: "'JetBrains Mono', monospace", color: brand.textSecondary }}
+                        >
+                          {formatBs(item.value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Transacciones recientes + Presupuestos */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <div
               className="xl:col-span-2 rounded-xl border p-5 sm:p-6"
@@ -503,6 +350,7 @@ export default function DashboardPage() {
                   Transacciones recientes
                 </h2>
                 <button
+                  onClick={() => navigate('/transactions')}
                   className="flex items-center gap-1 text-xs font-medium transition-colors"
                   style={{ color: brand.accent }}
                 >
@@ -510,47 +358,64 @@ export default function DashboardPage() {
                   <ChevronRight size={14} />
                 </button>
               </div>
-              <div className="space-y-1">
-                {recentTransactions.map((t) => {
-                  const Icon = t.icon;
-                  const positive = t.amount > 0;
-                  return (
-                    <div
-                      key={t.id}
-                      className="flex items-center justify-between py-3 border-b last:border-b-0"
-                      style={{ borderColor: brand.border }}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                          style={{ background: brand.bg }}
-                        >
-                          <Icon size={16} style={{ color: brand.text }} strokeWidth={1.75} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate" style={{ color: brand.text }}>
-                            {t.label}
-                          </p>
-                          <p className="text-xs" style={{ color: brand.textSecondary }}>
-                            {t.category} &middot; {t.date}
-                          </p>
-                        </div>
-                      </div>
-                      <span
-                        className="text-sm tabular-nums shrink-0 pl-3"
-                        style={{
-                          fontFamily: "'JetBrains Mono', monospace",
-                          color: positive ? brand.success : brand.text,
-                          fontWeight: 500,
-                        }}
+
+              {recentTx.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <p className="text-sm mb-1" style={{ color: brand.text }}>
+                    Todavía no tenés transacciones
+                  </p>
+                  <p className="text-xs" style={{ color: brand.textSecondary }}>
+                    Registrá tu primer ingreso o gasto para verlo acá.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {recentTx.map((t) => {
+                    const isIncome = t.type === 'INCOME';
+                    const amount = n(t.amount);
+                    const signedAmount = isIncome ? amount : -amount;
+                    return (
+                      <div
+                        key={t.id}
+                        className="flex items-center justify-between py-3 border-b last:border-b-0"
+                        style={{ borderColor: brand.border }}
                       >
-                        {positive ? '+' : ''}
-                        {formatBs(t.amount)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                            style={{ background: isIncome ? 'rgba(46,189,115,0.12)' : 'rgba(242,115,79,0.12)' }}
+                          >
+                            {isIncome ? (
+                              <ArrowDownLeft size={16} style={{ color: brand.success }} strokeWidth={1.75} />
+                            ) : (
+                              <ArrowUpRight size={16} style={{ color: brand.danger }} strokeWidth={1.75} />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate" style={{ color: brand.text }}>
+                              {t.description || t.category?.name || (isIncome ? 'Ingreso' : 'Gasto')}
+                            </p>
+                            <p className="text-xs" style={{ color: brand.textSecondary }}>
+                              {t.category?.name ?? 'Sin categoría'} &middot; {formatDate(t.transactionDate)}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className="text-sm tabular-nums shrink-0 pl-3"
+                          style={{
+                            fontFamily: "'JetBrains Mono', monospace",
+                            color: isIncome ? brand.success : brand.text,
+                            fontWeight: 500,
+                          }}
+                        >
+                          {isIncome ? '+' : ''}
+                          {formatBs(signedAmount)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div
@@ -560,49 +425,57 @@ export default function DashboardPage() {
               <h2 className="text-base font-medium mb-5" style={{ color: brand.text }}>
                 Presupuestos
               </h2>
-              <div className="space-y-5">
-                {budgets.map((b) => {
-                  const status = budgetStatus(b.spent, b.total);
-                  return (
-                    <div key={b.label}>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-sm font-medium" style={{ color: brand.text }}>
-                          {b.label}
-                        </span>
-                        <span className="text-xs" style={{ color: status.color }}>
-                          {status.label}
-                        </span>
-                      </div>
-                      <div
-                        className="h-2 w-full rounded-full overflow-hidden mb-1.5"
-                        style={{ background: brand.bg }}
-                      >
+
+              {budgetAlerts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <p className="text-sm mb-3" style={{ color: brand.textSecondary }}>
+                    No tenés presupuestos configurados para este mes.
+                  </p>
+                  <button
+                    onClick={() => navigate('/budgets')}
+                    className="text-xs font-medium"
+                    style={{ color: brand.accent }}
+                  >
+                    Crear presupuesto
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {budgetAlerts.map((b) => {
+                    const status = budgetStatus(n(b.percentageUsed));
+                    return (
+                      <div key={b.budgetId}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-sm font-medium" style={{ color: brand.text }}>
+                            {b.categoryName}
+                          </span>
+                          <span className="text-xs" style={{ color: status.color }}>
+                            {status.label}
+                          </span>
+                        </div>
                         <div
-                          className="h-full rounded-full transition-all duration-300"
-                          style={{ width: `${status.pct}%`, background: status.color }}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span
-                          className="text-xs tabular-nums"
-                          style={{ fontFamily: "'JetBrains Mono', monospace", color: brand.textSecondary }}
+                          className="h-2 w-full rounded-full overflow-hidden mb-1.5"
+                          style={{ background: brand.bg }}
                         >
-                          {formatBs(b.spent)} / {formatBs(b.total)}
-                        </span>
+                          <div
+                            className="h-full rounded-full transition-all duration-300"
+                            style={{ width: `${status.pct}%`, background: status.color }}
+                          />
+                        </div>
                         <span className="text-xs" style={{ color: brand.textSecondary }}>
-                          {status.pct}%
+                          {status.pct}% usado
                         </span>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Acciones rápidas */}
           <div className="flex flex-col sm:flex-row gap-3">
             <button
+              onClick={() => navigate('/transactions')}
               className="flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-medium transition-colors duration-150"
               style={{ background: brand.dark, color: brand.bg }}
               onMouseEnter={(e) => (e.currentTarget.style.background = brand.darkHover)}
@@ -612,6 +485,7 @@ export default function DashboardPage() {
               Nueva transacción
             </button>
             <button
+              onClick={() => navigate('/budgets')}
               className="flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-medium border transition-colors duration-150"
               style={{ borderColor: brand.accent, color: brand.accent, background: 'transparent' }}
               onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(245,166,35,0.08)')}
@@ -621,8 +495,8 @@ export default function DashboardPage() {
               Crear presupuesto
             </button>
           </div>
-        </main>
-      </div>
-    </div>
+        </>
+      )}
+    </>
   );
 }

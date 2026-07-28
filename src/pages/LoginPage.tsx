@@ -3,26 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ArrowRight, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../api/auth.service';
-
-// ---------------------------------------------------------------------------
-// FinTrack — paleta y tipografía de marca (inyectadas localmente, sin tocar
-// archivos globales). Reutiliza estas constantes también en Register/Dashboard.
-// ---------------------------------------------------------------------------
-const FONT_IMPORT =
-  "@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');";
-
-const brand = {
-  bg: '#FAF9F6',
-  dark: '#12181F',
-  darkHover: '#2A3644',
-  text: '#12181F',
-  textSecondary: '#6B7280',
-  border: '#E4E2DC',
-  accent: '#F5A623',
-  success: '#2EBD73',
-  danger: '#F2734F',
-  errorBg: '#FBEAE0',
-};
+import { FONT_IMPORT, brand } from '../lib/theme';
 
 const ledgerRows = [
   { label: 'Salario', amount: '+3.200,00', positive: true },
