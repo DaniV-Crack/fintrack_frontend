@@ -136,7 +136,9 @@ export interface CreateBudgetDto {
 export type UpdateBudgetDto = Partial<Pick<CreateBudgetDto, 'amount'>>;
 
 export interface BudgetProgress {
-  budget: Budget;
+  budgetId: string;
+  categoryName: string;
+  budgeted: number;
   spent: number;
   remaining: number;
   percentage: number;
