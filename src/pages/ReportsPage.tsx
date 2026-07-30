@@ -37,7 +37,7 @@ export default function ReportsPage() {
     setLoading(true);
     try {
       const result = await transactionsService.getSummary({ dateFrom, dateTo });
-      setSummary(result as TransactionSummary);
+      setSummary(result);
     } catch {
       // ignore
     } finally {
